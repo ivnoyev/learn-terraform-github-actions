@@ -1,6 +1,12 @@
 name: JMeter Test
 on: workflow_dispatch
 
+env:
+  TF_CLOUD_ORGANIZATION: "ivn-server"
+  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+  TF_WORKSPACE: "learn-terraform-github-actions"
+  CONFIG_DIRECTORY: "./"
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -23,7 +29,6 @@ jobs:
         run: |
           echo "master_ip=$(terraform output -raw master_ip)" >> $GITHUB_OUTPUT
           echo "slave_ip=$(terraform output -raw slave_ip)" >> $GITHUB_OUTPUT
-          echo "monitoring_private_ip=$(terraform output -raw monitoring_private_ip)" >> $GITHUB_OUTPUT
       - name: Run JMeter
         uses: appleboy/ssh-action@v1.0.3
         with:
