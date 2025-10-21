@@ -4,7 +4,7 @@ provider "aws" {
 
 resource "random_pet" "sg" {}
 
-# VPC
+# VPC and Subnet
 resource "aws_vpc" "jmeter_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -40,6 +40,18 @@ resource "aws_security_group" "jmeter_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # For Grafana
+  }
+  ingress {
+    from_port   = 8086
+    to_port     = 8086
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"] # InfluxDB from JMeter
+  }
   egress {
     from_port   = 0
     to_port     = 0
@@ -53,7 +65,7 @@ data "aws_ami" "ubuntu" {
   most_recent = true
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
   owners = ["099720109477"] # Canonical
 }
@@ -61,10 +73,10 @@ data "aws_ami" "ubuntu" {
 # JMeter Master
 resource "aws_instance" "jmeter_master" {
   ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t3.small"
+  instance_type          = "t3.micro"
   subnet_id              = aws_subnet.jmeter_subnet.id
   vpc_security_group_ids = [aws_security_group.jmeter_sg.id]
-  key_name               = "jmeter-ssh-key"
+  key_name               = "jmeter-key"
 
   user_data = <<-EOF
     #!/bin/bash
@@ -74,6 +86,7 @@ resource "aws_instance" "jmeter_master" {
     tar -xzf apache-jmeter-5.6.3.tgz -C /opt
     ln -s /opt/apache-jmeter-5.6.3 /opt/jmeter
     echo "server.rmi.ssl.disable=true" >> /opt/jmeter/bin/jmeter.properties
+    echo "mode=Standard" >> /opt/jmeter/bin/jmeter.properties
     EOF
 
   tags = { Name = "JMeter-Master" }
@@ -88,7 +101,7 @@ resource "aws_instance" "jmeter_slave" {
   instance_type          = "t3.micro"
   subnet_id              = aws_subnet.jmeter_subnet.id
   vpc_security_group_ids = [aws_security_group.jmeter_sg.id]
-  key_name               = "jmeter-ssh-key"
+  key_name               = "jmeter-key"
 
   user_data = <<-EOF
     #!/bin/bash
@@ -98,6 +111,7 @@ resource "aws_instance" "jmeter_slave" {
     tar -xzf apache-jmeter-5.6.3.tgz -C /opt
     ln -s /opt/apache-jmeter-5.6.3 /opt/jmeter
     echo "server.rmi.ssl.disable=true" >> /opt/jmeter/bin/jmeter.properties
+    echo "mode=Standard" >> /opt/jmeter/bin/jmeter.properties
     /opt/jmeter/bin/jmeter-server &
     EOF
 
@@ -110,7 +124,7 @@ resource "aws_instance" "monitoring" {
   instance_type          = "t3.micro"
   subnet_id              = aws_subnet.jmeter_subnet.id
   vpc_security_group_ids = [aws_security_group.jmeter_sg.id]
-  key_name               = "jmeter-ssh-key"
+  key_name               = "jmeter-key"
 
   user_data = <<-EOF
     #!/bin/bash
@@ -123,13 +137,7 @@ resource "aws_instance" "monitoring" {
   tags = { Name = "Monitoring" }
 }
 
-# IP addresses to output
-output "master_ip" {
-  value = aws_instance.jmeter_master.public_ip
-}
-output "slave_ips" {
-  value = join(",", aws_instance.jmeter_slave[*].private_ip)
-}
-output "grafana_url" {
-  value = "http://${aws_instance.monitoring.public_ip}:3000"
-}
+# Outputs
+output "master_ip" { value = aws_instance.jmeter_master.public_ip }
+output "slave_ips" { value = join(",", aws_instance.jmeter_slave[*].private_ip) }
+output "grafana_url" { value = "http://${aws_instance.monitoring.public_ip}:3000" }
