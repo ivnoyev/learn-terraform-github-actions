@@ -61,7 +61,7 @@ resource "aws_instance" "jmeter_master" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t3.micro"
   vpc_security_group_ids = [aws_security_group.jmeter_sg.id]
-  key_name               = "jmeter-key"
+  key_name               = "jmeter-ssh-key"
   user_data              = <<-EOF
     #!/bin/bash
     apt update -y
@@ -79,7 +79,7 @@ resource "aws_instance" "jmeter_slave" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t3.micro"
   vpc_security_group_ids = [aws_security_group.jmeter_sg.id]
-  key_name               = "jmeter-key"
+  key_name               = "jmeter-ssh-key"
   user_data              = <<-EOF
     #!/bin/bash
     apt update -y
