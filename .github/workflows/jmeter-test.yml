@@ -1,0 +1,41 @@
+name: JMeter Test
+on: workflow_dispatch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve
+      - name: Get IPs
+        id: ips
+        run: |
+          echo "master_ip=$(terraform output -raw master_ip)" >> $GITHUB_OUTPUT
+          echo "slave_ip=$(terraform output -raw slave_ip)" >> $GITHUB_OUTPUT
+          echo "monitoring_private_ip=$(terraform output -raw monitoring_private_ip)" >> $GITHUB_OUTPUT
+        working-directory: terraform
+      - name: Run JMeter
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ steps.ips.outputs.master_ip }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            scp tests/script.jmx ubuntu@${{ steps.ips.outputs.master_ip }}:/opt/jmeter/bin/
+            sed -i "s/remote_hosts=.*/remote_hosts=${{ steps.ips.outputs.slave_ip }}/" /opt/jmeter/bin/jmeter.properties
+            /opt/jmeter/bin/jmeter -n -t /opt/jmeter/bin/test.jmx -R ${{ steps.ips.outputs.slave_ip }}
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
+        working-directory: terraform
