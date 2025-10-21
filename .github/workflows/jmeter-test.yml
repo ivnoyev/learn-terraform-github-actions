@@ -15,14 +15,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
       - name: Terraform Init
-        working-directory: terraform
         run: terraform init -input=false
       - name: Terraform Apply
-        working-directory: terraform
         run: terraform apply -auto-approve
       - name: Get IPs
         id: ips
-        working-directory: terraform
         run: |
           echo "master_ip=$(terraform output -raw master_ip)" >> $GITHUB_OUTPUT
           echo "slave_ip=$(terraform output -raw slave_ip)" >> $GITHUB_OUTPUT
@@ -54,5 +51,4 @@ jobs:
           name: jmeter-results
           path: results/results.jtl
       - name: Terraform Destroy
-        working-directory: terraform
         run: terraform destroy -auto-approve
