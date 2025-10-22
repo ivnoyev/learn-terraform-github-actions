@@ -3,7 +3,6 @@ on: workflow_dispatch
 
 env:
   TF_CLOUD_ORGANIZATION: "ivn-server"
-  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
   TF_WORKSPACE: "gh-actions-demo"
   CONFIG_DIRECTORY: "./"
 
@@ -22,13 +21,19 @@ jobs:
           aws-region: eu-central-1
       - name: Terraform Init
         run: terraform init -input=false
+        env: 
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        env: 
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       - name: Get IPs
         id: ips
         run: |
           echo "master_ip=$(terraform output -raw master_ip)" >> $GITHUB_OUTPUT
           echo "slave_ip=$(terraform output -raw slave_ip)" >> $GITHUB_OUTPUT
+        env: 
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       - name: Run JMeter
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -57,3 +62,5 @@ jobs:
           path: results/results.jtl
       - name: Terraform Destroy
         run: terraform destroy -auto-approve
+        env: 
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
