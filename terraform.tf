@@ -1,11 +1,4 @@
 terraform {
-  cloud {
-    organization = "ivn-server"
-    workspaces {
-      name = "gh-actions-demo"
-    }
-  }
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"

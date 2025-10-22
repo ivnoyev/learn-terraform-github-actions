@@ -1,12 +1,8 @@
 provider "aws" {
-   region = "eu-central-1"
+  region = "eu-central-1"
 }
 
 resource "random_pet" "sg" {}
-
-data "aws_vpc" "default" {
-  default = true
-}
 
 data "aws_ami" "ubuntu" {
   most_recent = true
@@ -15,36 +11,6 @@ data "aws_ami" "ubuntu" {
     values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
   owners = ["099720109477"]
-}
-
-resource "aws_security_group" "jmeter_sg" {
-  name   = "${random_pet.sg.id}-sg"
-  vpc_id = data.aws_vpc.default.id
-
-  ingress {
-    from_port   = 1099
-    to_port     = 1099
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 50000
-    to_port     = 50000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 }
 
 resource "aws_instance" "jmeter_master" {

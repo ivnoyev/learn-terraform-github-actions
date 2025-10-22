@@ -2,40 +2,36 @@ name: JMeter Test
 on: workflow_dispatch
 
 env:
-  TF_CLOUD_ORGANIZATION: "ivn-server"
-  TF_WORKSPACE: "gh-actions-demo"
   CONFIG_DIRECTORY: "./"
 
-
-permissions:
-  id-token: write
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-        with: { terraform_version: "1.5.0" }
+      - uses: actions/setup-node@v5
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@main
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::808953421164:role/pipeline-role
+          aws-access-key-id: '${{ secrets.TF_USER_AWS_KEY }}'
+          aws-secret-access-key: '${{ secrets.TF_USER_AWS_SECRET }}'
           aws-region: eu-central-1
-      - name: Terraform Init
-        run: terraform init -input=false -upgrade
-        env: 
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
       - name: Terraform Apply
-        run: terraform apply -auto-approve
-        env: 
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+        id: apply
+        run: |
+          terraform init
+          terraform validate
+          terraform plan
+          terraform apply -auto-approve
       - name: Get IPs
         id: ips
         run: |
           echo "master_ip=$(terraform output -raw master_ip)" >> $GITHUB_OUTPUT
           echo "slave_ip=$(terraform output -raw slave_ip)" >> $GITHUB_OUTPUT
-        env: 
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       - name: Run JMeter
         uses: appleboy/ssh-action@v1.0.3
         with:
