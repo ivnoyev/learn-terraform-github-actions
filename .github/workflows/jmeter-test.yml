@@ -6,6 +6,9 @@ env:
   TF_WORKSPACE: "gh-actions-demo"
   CONFIG_DIRECTORY: "./"
 
+
+permissions:
+  id-token: write
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -14,13 +17,12 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with: { terraform_version: "1.5.0" }
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@main
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::808953421164:role/pipeline-role
           aws-region: eu-central-1
       - name: Terraform Init
-        run: terraform init -input=false
+        run: terraform init -input=false -upgrade
         env: 
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       - name: Terraform Apply
