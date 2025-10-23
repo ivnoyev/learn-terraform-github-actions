@@ -62,7 +62,6 @@ resource "aws_instance" "jmeter_master" {
 }
 
 resource "aws_instance" "jmeter_slave" {
-  count                  = 1
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t3.micro"
   vpc_security_group_ids = [aws_security_group.jmeter_sg.id]
@@ -77,8 +76,8 @@ resource "aws_instance" "jmeter_slave" {
     echo "server.rmi.ssl.disable=true" >> /opt/jmeter/bin/jmeter.properties
     /opt/jmeter/bin/jmeter-server &
   EOF
-  tags                   = { Name = "JMeter-Slave-${count.index}" }
+  tags                   = { Name = "JMeter-Slave" }
 }
 
 output "master_ip" { value = aws_instance.jmeter_master.public_ip }
-output "slave_ip" { value = aws_instance.jmeter_slave[0].private_ip }
+output "slave_ip" { value = aws_instance.jmeter_slave.private_ip }
