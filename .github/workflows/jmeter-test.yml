@@ -32,17 +32,28 @@ jobs:
         run: |
           echo "master_ip=$(terraform output -raw master_ip)" >> $GITHUB_OUTPUT
           echo "slave_ip=$(terraform output -raw slave_ip)" >> $GITHUB_OUTPUT
-      - name: Check instance from inside
+      - name: Debug Instance Status
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
+          echo "=== Instance Details ==="
+          aws ec2 describe-instances \
             --filters "Name=tag:Name,Values=JMeter-Master" \
-            --query 'Reservations[].Instances[].InstanceId' \
-            --output text)
-          aws ssm send-command \
-            --instance-ids $INSTANCE_ID \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["netstat -tln | grep :22", "systemctl status ssh", "curl -s http://169.254.169.254/latest/meta-data/public-ipv4"]' \
-            --output text
+            --query 'Reservations[].Instances[].[
+              Tags[?Key==`Name`].Value[0],
+              State.Name,
+              PublicIpAddress,
+              PrivateIpAddress,
+              SubnetId,
+              VpcId
+            ]' \
+            --output table
+          echo "=== Security Group Rules ==="
+          aws ec2 describe-security-groups \
+            --group-ids $(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=JMeter-Master" \
+              --query 'Reservations[].Instances[].SecurityGroups[].GroupId' \
+              --output text) \
+            --query 'SecurityGroups[].[GroupName, IpPermissions[?ToPort==`22`].[FromPort, ToPort, IpRanges[].CidrIp]]' \
+            --output table
       - name: Wait for SSH to be ready
         run: |
           echo "Master IP: ${{ steps.ips.outputs.master_ip }}"
