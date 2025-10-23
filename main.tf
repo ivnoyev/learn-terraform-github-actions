@@ -70,6 +70,8 @@ resource "aws_instance" "jmeter_slave" {
     #!/bin/bash
     apt update -y
     apt install -y openjdk-11-jdk wget openssh-server
+    systemctl enable ssh
+    systemctl start ssh
     wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
     tar -xzf apache-jmeter-5.6.3.tgz -C /opt
     ln -s /opt/apache-jmeter-5.6.3 /opt/jmeter
