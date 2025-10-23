@@ -4,6 +4,35 @@ provider "aws" {
 
 resource "random_pet" "sg" {}
 
+resource "aws_security_group" "jmeter_sg" {
+  name   = "${random_pet.sg.id}-sg"
+
+  ingress {
+    from_port   = 1099
+    to_port     = 1099
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 50000
+    to_port     = 50000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 data "aws_ami" "ubuntu" {
   most_recent = true
   filter {
@@ -16,6 +45,7 @@ data "aws_ami" "ubuntu" {
 resource "aws_instance" "jmeter_master" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t3.micro"
+  vpc_security_group_ids = [aws_security_group.jmeter_sg.id]
   key_name               = "jmeter-ssh-key"
   user_data              = <<-EOF
     #!/bin/bash
@@ -33,6 +63,7 @@ resource "aws_instance" "jmeter_slave" {
   count                  = 1
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t3.micro"
+  vpc_security_group_ids = [aws_security_group.jmeter_sg.id]
   key_name               = "jmeter-ssh-key"
   user_data              = <<-EOF
     #!/bin/bash
