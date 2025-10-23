@@ -32,6 +32,30 @@ jobs:
         run: |
           echo "master_ip=$(terraform output -raw master_ip)" >> $GITHUB_OUTPUT
           echo "slave_ip=$(terraform output -raw slave_ip)" >> $GITHUB_OUTPUT
+      - name: Wait for SSH to be ready
+        run: |
+          echo "Master IP: ${{ steps.ips.outputs.master_ip }}"
+          echo "Slave IP: ${{ steps.ips.outputs.slave_ip }}"
+          
+          echo "Waiting for SSH on master..."
+          for i in {1..30}; do
+            if nc -z -w 5 ${{ steps.ips.outputs.master_ip }} 22; then
+              echo "Master SSH is ready!"
+              break
+            fi
+            echo "Attempt $i: Master not ready yet..."
+            sleep 10
+          done
+          
+          echo "Waiting for SSH on slave..."
+          for i in {1..30}; do
+            if nc -z -w 5 ${{ steps.ips.outputs.slave_ip }} 22; then
+              echo "Slave SSH is ready!"
+              break
+            fi
+            echo "Attempt $i: Slave not ready yet..."
+            sleep 10
+          done
       - name: Run JMeter
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -39,7 +63,12 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            echo "Copying test.jmx"
+            echo "=== Installing JMeter ==="
+            wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+            sudo tar -xzf apache-jmeter-5.6.3.tgz -C /opt
+            sudo ln -sf /opt/apache-jmeter-5.6.3 /opt/jmeter
+
+            echo "Copying the script"
             scp -o StrictHostKeyChecking=no tests/script.jmx ubuntu@${{ steps.ips.outputs.master_ip }}:/opt/jmeter/bin/
             echo "Updating jmeter.properties"
             sed -i "s/remote_hosts=.*/remote_hosts=${{ steps.ips.outputs.slave_ip }}/" /opt/jmeter/bin/jmeter.properties

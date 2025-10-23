@@ -5,7 +5,7 @@ provider "aws" {
 resource "random_pet" "sg" {}
 
 resource "aws_security_group" "jmeter_sg" {
-  name   = "${random_pet.sg.id}-sg"
+  name = "${random_pet.sg.id}-sg"
 
   ingress {
     from_port   = 1099
@@ -50,8 +50,10 @@ resource "aws_instance" "jmeter_master" {
   user_data              = <<-EOF
     #!/bin/bash
     apt update -y
-    apt install -y openjdk-11-jdk wget
-    wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+    apt install -y openjdk-11-jdk wget openssh-server
+    systemctl enable ssh
+    systemctl start ssh
+    wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
     tar -xzf apache-jmeter-5.6.3.tgz -C /opt
     ln -s /opt/apache-jmeter-5.6.3 /opt/jmeter
     echo "server.rmi.ssl.disable=true" >> /opt/jmeter/bin/jmeter.properties
@@ -68,8 +70,8 @@ resource "aws_instance" "jmeter_slave" {
   user_data              = <<-EOF
     #!/bin/bash
     apt update -y
-    apt install -y openjdk-11-jdk wget
-    wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+    apt install -y openjdk-11-jdk wget openssh-server
+    wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
     tar -xzf apache-jmeter-5.6.3.tgz -C /opt
     ln -s /opt/apache-jmeter-5.6.3 /opt/jmeter
     echo "server.rmi.ssl.disable=true" >> /opt/jmeter/bin/jmeter.properties
