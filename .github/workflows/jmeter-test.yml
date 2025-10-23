@@ -32,6 +32,17 @@ jobs:
         run: |
           echo "master_ip=$(terraform output -raw master_ip)" >> $GITHUB_OUTPUT
           echo "slave_ip=$(terraform output -raw slave_ip)" >> $GITHUB_OUTPUT
+      - name: Check instance from inside
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=JMeter-Master" \
+            --query 'Reservations[].Instances[].InstanceId' \
+            --output text)
+          aws ssm send-command \
+            --instance-ids $INSTANCE_ID \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=["netstat -tln | grep :22", "systemctl status ssh", "curl -s http://169.254.169.254/latest/meta-data/public-ipv4"]' \
+            --output text
       - name: Wait for SSH to be ready
         run: |
           echo "Master IP: ${{ steps.ips.outputs.master_ip }}"
