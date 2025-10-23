@@ -59,7 +59,7 @@ jobs:
           done
           
       - name: Run JMeter
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ steps.ips.outputs.master_ip }}
           username: ubuntu
