@@ -61,25 +61,4 @@ resource "aws_instance" "jmeter_master" {
   tags                   = { Name = "JMeter-Master" }
 }
 
-resource "aws_instance" "jmeter_slave" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t3.micro"
-  vpc_security_group_ids = [aws_security_group.jmeter_sg.id]
-  key_name               = "jmeter-ssh-key"
-  user_data              = <<-EOF
-    #!/bin/bash
-    apt update -y
-    apt install -y openjdk-11-jdk wget openssh-server
-    systemctl enable ssh
-    systemctl start ssh
-    wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
-    tar -xzf apache-jmeter-5.6.3.tgz -C /opt
-    ln -s /opt/apache-jmeter-5.6.3 /opt/jmeter
-    echo "server.rmi.ssl.disable=true" >> /opt/jmeter/bin/jmeter.properties
-    /opt/jmeter/bin/jmeter-server &
-  EOF
-  tags                   = { Name = "JMeter-Slave" }
-}
-
 output "master_ip" { value = aws_instance.jmeter_master.public_ip }
-output "slave_ip" { value = aws_instance.jmeter_slave.private_ip }

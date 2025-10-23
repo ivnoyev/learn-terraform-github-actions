@@ -47,7 +47,6 @@ jobs:
       - name: Wait for SSH to be ready
         run: |
           echo "Master IP: ${{ steps.ips.outputs.master_ip }}"
-          echo "Slave IP: ${{ steps.ips.outputs.slave_ip }}"
           
           echo "Waiting for SSH on master..."
           for i in {1..30}; do
@@ -59,15 +58,6 @@ jobs:
             sleep 10
           done
           
-          echo "Waiting for SSH on slave..."
-          for i in {1..30}; do
-            if nc -z -w 5 ${{ steps.ips.outputs.slave_ip }} 22; then
-              echo "Slave SSH is ready!"
-              break
-            fi
-            echo "Attempt $i: Slave not ready yet..."
-            sleep 10
-          done
       - name: Run JMeter
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -85,7 +75,7 @@ jobs:
             echo "Updating jmeter.properties"
             sed -i "s/remote_hosts=.*/remote_hosts=${{ steps.ips.outputs.slave_ip }}/" /opt/jmeter/bin/jmeter.properties
             echo "Running JMeter test"
-            /opt/jmeter/bin/jmeter -n -t /opt/jmeter/bin/test.jmx -R ${{ steps.ips.outputs.slave_ip }} -l /opt/jmeter/bin/results.jtl
+            /opt/jmeter/bin/jmeter -n -t /opt/jmeter/bin/script.jmx -R ${{ steps.ips.outputs.slave_ip }} -l /opt/jmeter/bin/results.jtl
       - name: Collect Results
         uses: appleboy/scp-action@v0.1.7
         with:
