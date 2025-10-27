@@ -85,7 +85,7 @@ jobs:
           source: "/opt/jmeter/bin/results.jtl"
           target: "results/"
       - name: Upload Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: jmeter-results
           path: results/results.jtl
